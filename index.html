@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>編劇術語互動儀表板</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        serif: ['"Noto Serif TC"', 'serif'],
+                    },
+                    colors: {
+                        script: {
+                            bg: '#1a1a1a',      // 背景深灰
+                            sidebar: '#252526', // 側邊欄
+                            active: '#37373d',  // 選中狀態
+                            accent: '#e2b340',  // 金色強調
+                            text: '#cccccc',    // 主要文字
+                            lighter: '#ffffff'  // 標題白
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #cccccc;
+            height: 100vh;
+            overflow: hidden; /* 防止整個頁面滾動 */
+        }
+
+        /* 自定義捲軸 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #252526; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #e2b340; 
+        }
+
+        /* 動畫效果 */
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-btn {
+            border-bottom: 2px solid transparent;
+            color: #888;
+        }
+        .tab-btn:hover {
+            color: #ccc;
+        }
+        .tab-btn.active {
+            border-bottom: 2px solid #e2b340;
+            color: #e2b340;
+        }
+
+        .term-item {
+            border-left: 4px solid transparent;
+        }
+        .term-item.active {
+            background-color: #37373d;
+            border-left: 4px solid #e2b340;
+            color: white;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Top Header -->
+    <header class="bg-script-sidebar border-b border-gray-700 h-16 flex items-center justify-between px-6 shrink-0 z-20 shadow-lg">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-clapperboard text-script-accent text-2xl"></i>
+            <h1 class="font-serif font-bold text-xl text-white tracking-wider">Screenwriter's <span class="text-script-accent">Glossary</span></h1>
+        </div>
+        <div class="text-xs text-gray-500 hidden md:block">
+            角色開發聖經配套教材 v2.1
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Left Sidebar (Category & List) -->
+        <aside class="w-full md:w-80 bg-script-sidebar flex flex-col border-r border-gray-700 shrink-0 z-10 transition-all duration-300" id="sidebar">
+            
+            <!-- Category Tabs -->
+            <div class="flex overflow-x-auto border-b border-gray-700 shrink-0">
+                <button onclick="window.switchCategory('basics')" class="tab-btn active flex-1 py-3 px-4 text-sm font-bold whitespace-nowrap transition" id="tab-basics">基礎</button>
+                <button onclick="window.switchCategory('core')" class="tab-btn flex-1 py-3 px-4 text-sm font-bold whitespace-nowrap transition" id="tab-core">核心</button>
+                <button onclick="window.switchCategory('arc')" class="tab-btn flex-1 py-3 px-4 text-sm font-bold whitespace-nowrap transition" id="tab-arc">弧光</button>
+                <button onclick="window.switchCategory('traits')" class="tab-btn flex-1 py-3 px-4 text-sm font-bold whitespace-nowrap transition" id="tab-traits">塑形</button>
+                <button onclick="window.switchCategory('relations')" class="tab-btn flex-1 py-3 px-4 text-sm font-bold whitespace-nowrap transition" id="tab-relations">關係</button>
+            </div>
+
+            <!-- Term List -->
+            <div id="term-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <!-- Javascript will populate this -->
+            </div>
+        </aside>
+
+        <!-- Right Content Area (Detail View) -->
+        <main class="flex-1 overflow-y-auto bg-script-bg relative" id="main-content">
+            <!-- Background Watermark -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
+                <i class="fa-solid fa-feather-pointed text-9xl"></i>
+            </div>
+
+            <div id="detail-view" class="max-w-4xl mx-auto p-6 md:p-12 relative z-10">
+                <!-- Javascript will populate this -->
+                <div class="flex flex-col items-center justify-center h-full text-center mt-20">
+                    <div class="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-spinner fa-spin text-script-accent text-xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-serif text-white mb-2">載入中...</h2>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script -->
+    <script>
+        // 1. 定義資料庫
+        const glossaryData = {
+            basics: [
+                {
+                    id: 'logline',
+                    title: 'Logline (一句話形容)',
+                    icon: 'fa-ticket',
+                    desc: '故事的電梯簡報。必須包含主角(Who)、對抗力量(Antagonist)、以及賭注(Stakes)。這是檢驗角色目標是否清晰的第一關。',
+                    example: {
+                        movie: '即刻救援 (Taken)',
+                        content: '一名退休的特務必須重出江湖，利用他所有的殘酷技能，在96小時內從人口販子手中救回他被綁架的女兒。'
+                    },
+                    tips: '好的一句話形容通常包含反諷（Irony）或強烈的衝突。'
+                },
+                {
+                    id: 'archetype',
+                    title: 'Archetype (原型)',
+                    icon: 'fa-masks-theater',
+                    desc: '觀眾潛意識能瞬間識別的角色功能模板。好的角色往往是原型的「混搭」或「顛覆」。常見原型包括：英雄、導師、守門人、變形者、陰影等。',
+                    example: {
+                        movie: '星際大戰 (Star Wars)',
+                        content: '路克 (英雄)、韓索羅 (亡命之徒/變形者)、尤達 (智者/導師)。'
+                    },
+                    tips: '不要讓原型變成刻板印象 (Stereotype)。給你的原型一個意想不到的特質。'
+                }
+            ],
+            core: [
+                {
+                    id: 'want',
+                    title: 'Want (外在目標)',
+                    icon: 'fa-bullseye',
+                    desc: '角色有意識想要得到的東西。它是推動劇情的動力，必須具體可見（獎盃、寶藏、逃離某地）。',
+                    example: {
+                        movie: '海底總動員 (Finding Nemo)',
+                        content: '馬林想要找到被抓走的兒子尼莫。這是明確、具體的行動目標。'
+                    },
+                    tips: '目標越具體越好。不要寫「想要快樂」，要寫「想要贏得比賽」。'
+                },
+                {
+                    id: 'need',
+                    title: 'Need (內在需求)',
+                    icon: 'fa-heart',
+                    desc: '角色潛意識中缺乏的東西，通常是心靈成長的課題。它往往與 Want 衝突。角色通常在故事前半段不知道自己需要這個。',
+                    example: {
+                        movie: '海底總動員 (Finding Nemo)',
+                        content: '馬林需要學會放手，相信孩子能面對危險（這與他想過度保護的 Want 衝突）。'
+                    },
+                    tips: 'Need 應該是能夠修正角色「致命缺陷」的解藥。'
+                },
+                {
+                    id: 'ghost',
+                    title: 'The Ghost (幽靈/創傷)',
+                    icon: 'fa-ghost',
+                    desc: '發生在故事開始之前(Backstory)的創傷事件。這個「幽靈」至今仍在糾纏角色，它是角色恐懼的根源。',
+                    example: {
+                        movie: '蝙蝠俠 (Batman)',
+                        content: '布魯斯韋恩目睹父母在巷子裡被殺。這個幽靈導致他無法信任體制，執著於私刑正義。'
+                    },
+                    tips: '你不一定要在電影裡演出這個創傷（閃回），但你必須知道它是什麼。'
+                },
+                {
+                    id: 'flaw',
+                    title: 'Fatal Flaw (致命缺陷)',
+                    icon: 'fa-link-slash',
+                    desc: '由「幽靈」衍生出的性格弱點。它是阻礙主角獲得 Need 的最大障礙。反派通常是針對這個缺陷設計的。',
+                    example: {
+                        movie: '教父 (The Godfather)',
+                        content: '麥可柯里昂對家族的過度忠誠與控制欲。這最初看似優點，最終卻讓他孤獨終老。'
+                    },
+                    tips: '完美的角色是無趣的。給你的主角一個可能會毀掉他們的缺陷。'
+                }
+            ],
+            arc: [
+                {
+                    id: 'lie',
+                    title: '1. 深信的謊言 (The Lie)',
+                    icon: 'fa-1',
+                    desc: '角色對世界的一種錯誤認知（Status Quo）。這是他們用來應對「幽靈」的防禦機制，但這其實是囚禁他們的牢籠。',
+                    example: {
+                        movie: '鋼鐵人 1 (Iron Man)',
+                        content: '東尼的謊言：「製造武器是為了保衛和平，而且我不需要為這些武器造成的後果負責。」'
+                    },
+                    tips: '謊言通常是第一幕的主題。'
+                },
+                {
+                    id: 'resistance',
+                    title: '2. 抗拒改變 (The Resistance)',
+                    icon: 'fa-2',
+                    desc: '當激勵事件發生，角色會試圖用舊的方法（謊言）解決新問題。他們拒絕聽從導師的建議，試圖維持現狀。',
+                    example: {
+                        movie: '獅子王 (The Lion King)',
+                        content: '當娜娜找到他請他回去，辛巴拒絕面對過去，堅稱「Hakuna Matata（逃避責任）」才是對的生活方式。'
+                    },
+                    tips: '如果主角立刻接受改變，故事就結束了。抗拒能創造張力。'
+                },
+                {
+                    id: 'darknight',
+                    title: '3. 靈魂黑夜 (All Hope Is Lost)',
+                    icon: 'fa-3',
+                    desc: '第二幕結束前的最低谷。舊的謊言徹底失效，角色失去了一切。他們被迫直視真相，這是最痛苦的時刻。',
+                    example: {
+                        movie: '玩具總動員 (Toy Story)',
+                        content: '巴斯光年看見電視廣告後，終於承認自己「只是一個玩具」。信念崩塌，陷入絕望。'
+                    },
+                    tips: '讓情況變得比你想像的更糟。剝奪角色最在乎的東西。'
+                },
+                {
+                    id: 'choice',
+                    title: '4. 關鍵抉擇 (The Choice)',
+                    icon: 'fa-4',
+                    desc: '高潮時刻。角色必須在「舊的謊言」和「新的真理」之間做出選擇。只有選擇真理並付出代價，他們才能獲得勝利。',
+                    example: {
+                        movie: '奇異博士 (Doctor Strange)',
+                        content: '他原本只想治好雙手（舊慾望），但在結局選擇經歷無數次死亡來保護地球（新真理：犧牲小我）。'
+                    },
+                    tips: '這個選擇必須是困難的，必須要有犧牲。'
+                }
+            ],
+            traits: [
+                {
+                    id: 'props',
+                    title: '道具與視覺敘事 (Props)',
+                    icon: 'fa-suitcase',
+                    desc: '電影是視覺的。好編劇使用物品來外化角色的內心狀態。道具應該隨著故事改變意義。',
+                    example: {
+                        movie: '全面啟動 (Inception)',
+                        content: '陀螺。這不僅是個小玩具，它代表了柯柏對現實的懷疑與對亡妻的罪惡感。'
+                    },
+                    tips: '給你的角色一個專屬道具，並在電影的三幕中賦予它不同的意義。'
+                },
+                {
+                    id: 'quirks',
+                    title: '怪癖與習慣 (Quirks)',
+                    icon: 'fa-fingerprint',
+                    desc: '獨特的行為模式能讓角色立體化，並暗示潛台詞(Subtext)。通常是用來掩飾焦慮或真實情感的動作。',
+                    example: {
+                        movie: '凱恩艦事變 (The Caine Mutiny)',
+                        content: '艦長手中不停轉動的兩顆鋼球，視覺化了他試圖壓抑的偏執與精神崩潰。'
+                    },
+                    tips: '怪癖應該源自於角色的心理狀態，而不只是為了搞怪。'
+                }
+            ],
+            relations: [
+                {
+                    id: 'antagonist',
+                    title: '反派/對手 (The Antagonist)',
+                    icon: 'fa-skull',
+                    desc: '不只是「壞人」，而是最擅長攻擊主角「致命缺陷」的人。反派越強大，越能逼迫主角面對自己的恐懼。',
+                    example: {
+                        movie: '黑暗騎士 (The Dark Knight)',
+                        content: '蝙蝠俠的弱點是「秩序」。小丑正是混亂的化身，他設計的所有困境都是為了逼蝙蝠俠打破原則。'
+                    },
+                    tips: '反派應該是主角缺陷的鏡像。'
+                },
+                {
+                    id: 'mentor',
+                    title: '導師 (The Mentor)',
+                    icon: 'fa-user-graduate',
+                    desc: '代表「真理 (Truth)」與「內在需求 (Need)」的人物。他們給予主角必要的工具或智慧，但主角通常在第一幕還聽不懂。',
+                    example: {
+                        movie: '駭客任務 (The Matrix)',
+                        content: '墨菲斯給了尼歐紅藥丸，引導他看清世界的真相，並相信自己是救世主。'
+                    },
+                    tips: '導師通常需要在故事中途離開（或死亡），強迫主角獨立成長。'
+                },
+                {
+                    id: 'bstory',
+                    title: 'B故事人物 (Love Interest)',
+                    icon: 'fa-user-group',
+                    desc: '通常是戀人或好朋友。他們負責承載故事的「主題 (Theme)」。當主線情節在處理外在目標(Want)時，他們會討論內在問題(Need)。',
+                    example: {
+                        movie: '天外奇蹟 (Up)',
+                        content: '卡爾爺爺想飛去瀑布（主線），但小羅的存在不斷提醒他「關係與愛」比冒險更重要（主題）。'
+                    },
+                    tips: '利用B故事人物來挑戰主角的觀點，進行哲學上的辯論。'
+                }
+            ]
+        };
+
+        // 2. 渲染詳解內容 (Render Detail)
+        function renderDetail(term) {
+            const detailContainer = document.getElementById('detail-view');
+            if (!detailContainer) return;
+            
+            // 重置動畫
+            detailContainer.classList.remove('fade-in');
+            void detailContainer.offsetWidth; // 強制重繪
+            detailContainer.classList.add('fade-in');
+
+            // 確保 title 安全處理
+            const displayTitle = term.title || 'Unknown Term';
+            
+            detailContainer.innerHTML = `
+                <div class="border-b border-gray-700 pb-6 mb-6">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 rounded-lg bg-script-accent text-black flex items-center justify-center text-2xl shadow-lg shadow-yellow-900/20 shrink-0">
+                            <i class="fa-solid ${term.icon}"></i>
+                        </div>
+                        <h2 class="text-2xl md:text-3xl font-serif font-bold text-white break-words">${displayTitle}</h2>
+                    </div>
+                    <p class="text-lg text-gray-300 leading-relaxed font-light">
+                        ${term.desc}
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 gap-6">
+                    <!-- Movie Example Card -->
+                    <div class="bg-script-sidebar border border-gray-700 rounded-lg p-6 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition pointer-events-none">
+                            <i class="fa-solid fa-film text-6xl"></i>
+                        </div>
+                        <h3 class="text-script-accent text-sm font-bold uppercase tracking-widest mb-3">
+                            <i class="fa-solid fa-clapperboard mr-2"></i> 經典電影範例
+                        </h3>
+                        <div class="pl-4 border-l-2 border-script-accent">
+                            <strong class="text-white text-lg block mb-1">${term.example.movie}</strong>
+                            <p class="text-gray-400 text-sm leading-relaxed">${term.example.content}</p>
+                        </div>
+                    </div>
+
+                    <!-- Tips Card -->
+                    <div class="bg-blue-900/20 border border-blue-900/50 rounded-lg p-4 flex items-start gap-4">
+                        <div class="mt-1 shrink-0"><i class="fa-solid fa-lightbulb text-blue-400"></i></div>
+                        <div>
+                            <strong class="text-blue-300 text-sm block mb-1">編劇小撇步</strong>
+                            <p class="text-blue-200/70 text-sm">${term.tips}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 3. 渲染左側列表 (Render List)
+        function renderList(catId) {
+            const listContainer = document.getElementById('term-list');
+            if (!listContainer) return;
+
+            listContainer.innerHTML = '';
+            
+            const terms = glossaryData[catId];
+            if (!terms) return; // 安全檢查
+
+            terms.forEach(term => {
+                const btn = document.createElement('button');
+                btn.className = `term-item w-full text-left p-4 rounded-md hover:bg-white/5 transition flex items-center gap-3`;
+                
+                // 解析標題
+                const parts = term.title.split('(');
+                const mainTitle = parts[0];
+                const subTitle = parts[1] ? parts[1].replace(')', '') : '';
+
+                btn.innerHTML = `
+                    <div class="w-8 h-8 rounded bg-gray-800 flex items-center justify-center shrink-0 text-gray-400">
+                        <i class="fa-solid ${term.icon}"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <div class="font-bold text-sm text-gray-200 truncate">${mainTitle}</div>
+                        <div class="text-xs text-gray-500 truncate">${subTitle}</div>
+                    </div>
+                `;
+
+                // 點擊事件
+                btn.onclick = function() {
+                    // 移除所有 active
+                    document.querySelectorAll('.term-item').forEach(b => b.classList.remove('active'));
+                    // 加上 active
+                    this.classList.add('active');
+                    renderDetail(term);
+                };
+                
+                listContainer.appendChild(btn);
+            });
+        }
+
+        // 4. 切換分類 (Switch Category)
+        window.switchCategory = function(catId) {
+            // 更新 Tab UI
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const activeTab = document.getElementById(`tab-${catId}`);
+            if (activeTab) activeTab.classList.add('active');
+
+            // 更新列表
+            renderList(catId);
+
+            // 自動選擇第一個項目
+            const terms = glossaryData[catId];
+            if (terms && terms.length > 0) {
+                renderDetail(terms[0]);
+                // Highlight first item
+                setTimeout(() => {
+                    const firstBtn = document.querySelector('.term-item');
+                    if(firstBtn) firstBtn.classList.add('active');
+                }, 10);
+            }
+        }
+
+        // 5. 初始化 (Init)
+        document.addEventListener('DOMContentLoaded', () => {
+            // 預設載入 'basics'
+            window.switchCategory('basics');
+        });
+    </script>
+</body>
+</html>
